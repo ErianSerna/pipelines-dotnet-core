@@ -43,9 +43,10 @@ jobs:
     inputs:
       testSelector: 'testAssemblies'
       testAssemblyVer2: |
-        **\*test*.dll
+        **\*Test*.dll
+        **\*Tests*.dll
         !**\*TestAdapter.dll
         !**\obj\**
-      searchFolder: '$(System.DefaultWorkingDirectory)'
-      runInParallel: true
+      searchFolder: '$(System.DefaultWorkingDirectory)\drop'
       codeCoverageEnabled: true
+
