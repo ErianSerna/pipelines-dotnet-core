@@ -4,16 +4,48 @@ trigger:
 pool:
   vmImage: 'windows-latest'
 
-steps:
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '6.0.x'
+# Paso 1: Compilación con un solo agente
+jobs:
+- job: Build
+  displayName: 'Build job (single agent)'
+  steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: '6.0.x'
 
-- script: dotnet build --configuration Release
-  displayName: 'Build project'
+  - script: dotnet build --configuration Release
+    displayName: 'Build project'
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+
+
+# Paso 2: Ejecución de pruebas en paralelo
+- job: Test
+  displayName: 'Run tests in parallel'
+  dependsOn: Build  # Espera que termine el job anterior
+  pool:
+    vmImage: 'windows-latest'
+  strategy:
+    parallel: 2  # <-- Ejecuta los tests en 2 agentes en paralelo (puedes cambiar el número)
+  steps:
+  - task: DownloadBuildArtifacts@1
+    inputs:
+      buildType: 'current'
+      downloadType: 'single'
+      artifactName: 'drop'
+      downloadPath: '$(System.DefaultWorkingDirectory)'
+
+  - task: VSTest@2
+    inputs:
+      testSelector: 'testAssemblies'
+      testAssemblyVer2: |
+        **\*test*.dll
+        !**\*TestAdapter.dll
+        !**\obj\**
+      searchFolder: '$(System.DefaultWorkingDirectory)'
+      runInParallel: true
+      codeCoverageEnabled: true
